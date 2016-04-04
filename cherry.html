@@ -5,7 +5,7 @@
   <meta charset="utf-8">
 
   <title>Live statistics on comments in reddit.com/r/askreddit</title>
-  <meta name="description" content="Live statistics on comments in reddit.com/r/askreddit, including counts of those mentioned Trump and Clinton">
+  <meta name="description" content="Live statistics on comments in reddit.com/r/askreddit, including counts of those mentioned Trump and/or Clinton">
   <meta name="author" content="James Hu">
 
   <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -35,22 +35,38 @@
 </head>
 
 <body>
-  <h1></h1>
+  <h1>Demo - Live statistics: Trump vs. Clinton according to comments in "askreddit"</h1>
 
-  Refresh interval (seconds): &nbsp;&nbsp;&nbsp;&nbsp; <input type="text" id="refreshIntervalSlider">
+  Reddit entries are organized into areas of interest called "subreddits". <a href="https://www.reddit.com/r/AskReddit/" target="_blank">"askreddit"</a> is one of them.
 
-  <h3>Total number of comments per 1 hour (UTC)</h3>
-  <h4>Latest hourly statistics: <span style="color:blue" id = "latestTotalCommentsCountsPer1HourUTC"></span></h4>
-  <div id="chartTotalCommentsCountsPer1HourUTC"></div>
+  Public comments posted in "askreddit" are collected and sent through REST API (POST <a href="https://api.rtstatistics.com/" target="_blank">https://api.rtstatistics.com/dataset/{id}/items</a>) from a server. rtstatistics.com does the number crunching to generate the statistics. This page queries the statistics through REST API (GET <a href="https://api.rtstatistics.com/" target="_blank">https://api.rtstatistics.com/statistics/{id}/detail</a>). The delay from the event gets received to updated statistics can be queried is typically less than 1 second.
 
-  <h3>Total number of distinct comments per 1 hour (UTC)</h3>
-  <h4>Latest hourly statistics: <span style="color:blue" id = "latestTotalDistinctCommentsCountsPer1HourUTC"></span></h4>
-  <div id="chartTotalDistinctCommentsCountsPer1HourUTC"></div>
+  Charts on this page use <a href="http://c3js.org/">c3.js</a>+<a href="https://d3js.org/">d3.js</a> for drawing the charts, and <a href="https://github.com/james-hu/cjtsd-js">cjtsd-js</a> is used for transforming the query results into the format that c3.js and Google Charts require.
+
+  You can adjust the refresh interval of these charts manually. During refreshes, if new statistics are fetched from the server, the charts will reflect the changes. If you don’t touch it for a few minutes, the interval will be automatically increased until reaching 60 seconds.
+
+  Refresh interval (seconds):      <input id="refreshIntervalSlider" type="text" />
 
   <h3>Trump vs. Clinton: number of comments mentioned per 1 hour (UTC)</h3>
+  <h4>Latest hourly statistics: <span id="latestTrumpVsClintonPer1HourUTC" style="color: blue;"></span></h4>
   <div id="chartTrumpVsClintonPer1HourUTC"></div>
+  This chart shows in the last 72 hours how many comments have "Trump" mentioned, how many have "Clinton" mentioned, and how many have both of them mentioned. It also shows the percentage of those comments in all comments posted.
 
+  The chart is drawn with c3.js and displays UTC time.
 
+  <h3>Total number of comments per 1 hour (UTC)</h3>
+  <h4>Latest hourly statistics: <span id="latestTotalCommentsCountsPer1HourUTC" style="color: blue;"></span></h4>
+  <div id="chartTotalCommentsCountsPer1HourUTC"></div>
+  This chart shows total number of comments posted per 1 hour in the last 72 hours.
+
+  The chart is drawn with c3.js and displays UTC time.
+
+  <h3>Total number of distinct comments per 1 hour (UTC)</h3>
+  <h4>Latest hourly statistics: <span id="latestTotalDistinctCommentsCountsPer1HourUTC" style="color: blue;"></span></h4>
+  <div id="chartTotalDistinctCommentsCountsPer1HourUTC"></div>
+  This chart shows total number of distinct comment content posted per 1 hour in the last 72 hours. For each hour, usually the number of distinct comments is smaller than the number of total comments.
+
+  The chart is drawn with c3.js and displays UTC time.
   <script>
   var queryKey = "r1ANSKf9wlQPOXyFVn2zwCChWTGc6fzOIH4sJYmM2pdCYljrH-rroXFZqN6GWkmW9Bb001Zdtf7vDQ8gXvaT-g";
 
@@ -82,12 +98,19 @@
       },
       bar: {
         width: {
-          ratio: 0.9
+          ratio: 0.8
         }
       },
       axis: {
         x: {
           type: 'timeseries',
+          tick: {
+            count: 72,
+            culling: {
+              max: 3
+            },
+            format: '%Y-%m-%d %H:00'
+          }
         },
         y: {
           tick: {
@@ -108,14 +131,14 @@
       },
       bar: {
         width: {
-          ratio: 0.9
+          ratio: 0.8
         }
       },
       axis: {
         x: {
           type: 'timeseries',
           tick: {
-            count: 336,
+            count: 72,
             culling: {
               max: 3
             },
@@ -143,7 +166,7 @@
           'trumpOnly': 'Mentioned "Trump" only',
           'both': 'Mentioned both "Trump" and "Clinton"',
           'clintonOnly' : 'Mentioned "Clinton" only',
-          'ratio' : 'Percentage of those mentioned either "Trump" or "Clinton"'
+          'ratio' : 'Percentage of those mentioned either "Trump" or "Clinton" in all comments'
         }
       },
       point: {
@@ -153,7 +176,7 @@
         x: {
           type: 'timeseries',
           tick: {
-            count: 336,
+            count: 72,
             culling: {
               max: 3
             },
@@ -246,7 +269,7 @@
       + "_period=1 hour"
 	  + "&_zone=UTC"
       + "&_columns=count"
-      + "&_from=" + formatTime(-336)
+      + "&_from=" + formatTime(-72)
       + "&_to=" + formatTime(1)
       + "&api_key=" + queryKey;
     $.ajax(query)
@@ -285,7 +308,7 @@
       + "_period=1 hour"
 	  + "&_zone=UTC"
       + "&_columns=unique,values"
-      + "&_from=" + formatTime(-336)
+      + "&_from=" + formatTime(-72)
       + "&_to=" + formatTime(1)
       + "&api_key=" + queryKey;
     $.ajax(query)
@@ -294,11 +317,11 @@
           var data = result.result;
           var timeCol = cjtsd.getFormattedTimestamps(data, 'YYYY-MM-DD HH:mm', 'time');
           var dataCol = cjtsd.prepend(data.n, 'Total number of distinct comments per 1 hour')
-		  var colLen = timeCol.length;
-		  if (colLen > 1){
-			  $("#latestTotalDistinctCommentsCountsPer1HourUTC").html(timeCol[colLen-1] + ": " + dataCol[colLen-1]);
-		  }
-           chartTotalDistinctCommentsCountsPer1HourUTC.load({
+    		  var colLen = timeCol.length;
+    		  if (colLen > 1){
+    			  $("#latestTotalDistinctCommentsCountsPer1HourUTC").html(timeCol[colLen-1] + ": " + dataCol[colLen-1]);
+    		  }
+          chartTotalDistinctCommentsCountsPer1HourUTC.load({
             columns: [
               timeCol,
               dataCol
@@ -323,7 +346,7 @@
       + "_period=1 hour"
       + "&_zone=UTC"
       + "&_columns=count"
-      + "&_from=" + formatTime(-336)
+      + "&_from=" + formatTime(-72)
       + "&_to=" + formatTime(1)
       + "&api_key=" + queryKey;
     var queryTrump = query.replace("STATISTICS_ID", "AA$wSRF3Rrymh6zziPjz6Ui$Qe64KNj0riG-HNkrl4Wt");
@@ -342,7 +365,8 @@
           var timeCol = cjtsd.getFormattedTimestamps(dataAll, 'YYYY-MM-DD HH:mm', 'time');
           var countsTrump = cjtsd.alignByTimestamps(rawTimestamps, dataTrump.t, dataTrump.c);
           var countsClinton = cjtsd.alignByTimestamps(rawTimestamps, dataClinton.t, dataClinton.c);
-          var countsBoth = cjtsd.alignByTimestamps(rawTimestamps, dataBoth.t, dataBoth.c);
+          var countsBoth = cjtsd.alignByTimestamps(rawTimestamps, dataBoth.t, dataBoth.c)
+            .map(function(val, i){return val == null ? 0 : val;});
           var countsAll = dataAll.c;
           var countsTrumpOnly = cjtsd.substract(countsTrump, countsBoth);
           var countsClintonOnly = cjtsd.substract(countsClinton, countsBoth);
@@ -355,6 +379,13 @@
             }
           }, countsAll, countsAny);
 
+          var dataLen = rawTimestamps.length;
+    		  if (dataLen > 1){
+    			  $("#latestTrumpVsClintonPer1HourUTC").html(timeCol[dataLen] + ": "
+              + countsTrumpOnly[dataLen-1] + ":" + countsBoth[dataLen-1] + ":" + countsClintonOnly[dataLen-1]
+              + ", " + Math.round(mentionedRatio[dataLen-1]*1000000)/10000 + "%");
+    		  }
+
           chartTrumpVsClintonPer1HourUTC.load({
             columns:[
               timeCol,
@@ -364,9 +395,9 @@
               cjtsd.prepend(mentionedRatio, 'ratio')
             ],
             types:{
-              trumpOnly: 'area',
-              both: 'area',
-              clintonOnly: 'area',
+              trumpOnly: 'area-spline',
+              both: 'area-spline',
+              clintonOnly: 'area-spline',
               ratio: 'line'
             },
             axes: {
