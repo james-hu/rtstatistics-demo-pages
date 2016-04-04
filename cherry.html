@@ -1,0 +1,397 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Live statistics on comments in reddit.com/r/askreddit</title>
+  <meta name="description" content="Live statistics on comments in reddit.com/r/askreddit, including counts of those mentioned Trump and Clinton">
+  <meta name="author" content="James Hu">
+
+  <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+  <!-- Load c3.css -->
+  <link href="http://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.css" rel="stylesheet" type="text/css">
+
+  <!-- Load d3.js and c3.js -->
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.5.12/d3.min.js" charset="utf-8"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.js"></script>
+
+  <!-- Load Google charts -->
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+  <!-- Load cjtsd.js and its dependencies -->
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+  <script src="https://npmcdn.com/cjtsd@^1.0.8/src/cjtsd.js"></script>
+
+  <!-- bootstrap -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+  <!-- slider component -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/6.1.5/css/bootstrap-slider.min.css" rel="stylesheet" type="text/css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/6.1.5/bootstrap-slider.min.js"></script>
+
+</head>
+
+<body>
+  <h1></h1>
+
+  Refresh interval (seconds): &nbsp;&nbsp;&nbsp;&nbsp; <input type="text" id="refreshIntervalSlider">
+
+  <h3>Total number of comments per 1 hour (UTC)</h3>
+  <h4>Latest hourly statistics: <span style="color:blue" id = "latestTotalCommentsCountsPer1HourUTC"></span></h4>
+  <div id="chartTotalCommentsCountsPer1HourUTC"></div>
+
+  <h3>Total number of distinct comments per 1 hour (UTC)</h3>
+  <h4>Latest hourly statistics: <span style="color:blue" id = "latestTotalDistinctCommentsCountsPer1HourUTC"></span></h4>
+  <div id="chartTotalDistinctCommentsCountsPer1HourUTC"></div>
+
+  <h3>Trump vs. Clinton: number of comments mentioned per 1 hour (UTC)</h3>
+  <div id="chartTrumpVsClintonPer1HourUTC"></div>
+
+
+  <script>
+  var queryKey = "r1ANSKf9wlQPOXyFVn2zwCChWTGc6fzOIH4sJYmM2pdCYljrH-rroXFZqN6GWkmW9Bb001Zdtf7vDQ8gXvaT-g";
+
+  var refreshIntervalSlider;
+
+  var chartTotalCommentsCountsPer1HourUTC;
+  var timeoutRefreshTotalCommentsCountsPer1HourUTC;
+
+  var chartTotalDistinctCommentsCountsPer1HourUTC;
+  var timeoutRefreshTotalDistinctCommentsCountsPer1HourUTC;
+
+  var chartTrumpVsClintonPer1HourUTC;
+  var timeoutRefreshTrumpVsClintonPer1HourUTC;
+
+
+  $(function(){
+    bindChartsAndStartRefresh();
+  });
+
+  function bindChartsAndStartRefresh(){
+    chartTotalCommentsCountsPer1HourUTC = c3.generate({
+      bindto: '#chartTotalCommentsCountsPer1HourUTC',
+      data: {
+        x: 'time',
+        xFormat: '%Y-%m-%d %H:%M',
+        columns: [
+        ],
+        type: 'bar'
+      },
+      bar: {
+        width: {
+          ratio: 0.9
+        }
+      },
+      axis: {
+        x: {
+          type: 'timeseries',
+        },
+        y: {
+          tick: {
+            format: d3.format(",")
+          }
+        }
+      }
+    });
+
+    chartTotalDistinctCommentsCountsPer1HourUTC = c3.generate({
+      bindto: '#chartTotalDistinctCommentsCountsPer1HourUTC',
+      data: {
+        x: 'time',
+        xFormat: '%Y-%m-%d %H:%M',
+        columns: [
+        ],
+        type: 'bar'
+      },
+      bar: {
+        width: {
+          ratio: 0.9
+        }
+      },
+      axis: {
+        x: {
+          type: 'timeseries',
+          tick: {
+            count: 336,
+            culling: {
+              max: 3
+            },
+            format: '%Y-%m-%d %H:00'
+          }
+        },
+        y: {
+          tick: {
+            format: d3.format(",")
+          }
+        }
+      }
+    });
+
+    chartTrumpVsClintonPer1HourUTC = c3.generate({
+      bindto: '#chartTrumpVsClintonPer1HourUTC',
+      data: {
+        x: 'time',
+        xFormat: '%Y-%m-%d %H:%M',
+        columns: [
+        ],
+        groups: [['clintonOnly', 'both', 'trumpOnly']],
+        order: null,
+        names:{
+          'trumpOnly': 'Mentioned "Trump" only',
+          'both': 'Mentioned both "Trump" and "Clinton"',
+          'clintonOnly' : 'Mentioned "Clinton" only',
+          'ratio' : 'Percentage of those mentioned either "Trump" or "Clinton"'
+        }
+      },
+      point: {
+        show: false
+      },
+      axis: {
+        x: {
+          type: 'timeseries',
+          tick: {
+            count: 336,
+            culling: {
+              max: 3
+            },
+            format: '%Y-%m-%d %H:00'
+          }
+        },
+        y: {
+          tick: {
+            format: d3.format(",")
+          }
+        },
+        y2: {
+          show: true,
+          tick: {
+            format: d3.format(".2%")
+          }
+        }
+      }
+    });
+
+    startRefresh();
+  }
+
+  function startRefresh(){
+    refreshIntervalSlider = new Slider("#refreshIntervalSlider", {
+      min: 1,
+      max: 60,
+      value: 1,
+      tooltip_position: "bottom"
+    });
+    refreshIntervalSlider.on("slideStop", onNewRefreshInterval);
+    refreshIntervalSlider.on("slideEnabled", onNewRefreshInterval);
+
+    refreshIntervalSlider.disable();
+    refreshIntervalSlider.enable();
+  }
+
+  function onNewRefreshInterval(){
+    resetRefreshing();
+    var seconds = refreshIntervalSlider.getValue();
+    if (seconds < 60){
+      setTimeout(function(){
+        var seconds = refreshIntervalSlider.getValue();
+        if (seconds < 60){
+          refreshIntervalSlider.disable();
+          if (seconds < 10){
+            refreshIntervalSlider.setValue(10);
+          }else if (seconds < 20){
+            refreshIntervalSlider.setValue(20);
+          }else if (seconds < 30){
+            refreshIntervalSlider.setValue(30);
+          }else if (seconds < 40){
+            refreshIntervalSlider.setValue(40);
+          }else if (seconds < 50){
+            refreshIntervalSlider.setValue(50);
+          }else{
+            refreshIntervalSlider.setValue(60);
+          }
+          refreshIntervalSlider.enable();
+        }
+      }, 60000 * (2 + Math.floor(seconds/30)));  // increase values after n minutes
+    }
+  }
+
+  function resetRefreshing(){
+    clearTimeout(timeoutRefreshTotalCommentsCountsPer1HourUTC);
+    updateTotalCommentsCountsPer1HourUTC();
+
+    clearTimeout(timeoutRefreshTotalDistinctCommentsCountsPer1HourUTC);
+    updateTotalDistinctCommentsCountsPer1HourUTC();
+
+    clearTimeout(timeoutRefreshTrumpVsClintonPer1HourUTC);
+    updateTrumpVsClintonPer1HourUTC();
+  }
+
+  function formatTime(hourOffset, zoneOffset, format){
+    if (zoneOffset === undefined){
+      zoneOffset = 0;
+    }
+    var now = Date.now() + zoneOffset;
+    if (format === undefined){
+      format = "YYYYMMDDHHmm";
+    }
+    return moment(now + 1000*60*60*hourOffset).utc().format(format);
+  }
+
+  function updateTotalCommentsCountsPer1HourUTC(){
+    var query;
+    query = "https://api.rtstatistics.com/statistics/AA$wSRF3Rrymh6zziPjz6Ui$SEWF2vekQI6bzP3peZq1/detail?"
+      + "_period=1 hour"
+	  + "&_zone=UTC"
+      + "&_columns=count"
+      + "&_from=" + formatTime(-336)
+      + "&_to=" + formatTime(1)
+      + "&api_key=" + queryKey;
+    $.ajax(query)
+      .done(function(result){
+        if (result.result){
+          var data = result.result;
+          var timeCol = cjtsd.getFormattedTimestamps(data, 'YYYY-MM-DD HH:mm', 'time');
+          var dataCol = cjtsd.prepend(data.c, 'Total number of comments per 1 hour')
+		  var colLen = timeCol.length;
+		  if (colLen > 1){
+			  $("#latestTotalCommentsCountsPer1HourUTC").html(timeCol[colLen-1] + ": " + dataCol[colLen-1]);
+		  }
+           chartTotalCommentsCountsPer1HourUTC.load({
+            columns: [
+              timeCol,
+              dataCol
+            ]
+          });
+          $("#chartTotalCommentsCountsPer1HourUTC .tick line").css("opacity", 0);
+        }else{
+          if (console && console.log){
+            console.log("No valid result for query '" + query + "', result: " + result);
+          }
+        }
+      })
+      .always(function(){
+        var interval = 1000 * refreshIntervalSlider.getValue();
+        timeoutRefreshTotalCommentsCountsPer1HourUTC = setTimeout(updateTotalCommentsCountsPer1HourUTC, interval);
+      });
+  }
+
+
+  function updateTotalDistinctCommentsCountsPer1HourUTC(){
+    var query;
+    query = "https://api.rtstatistics.com/statistics/AA$wSRF3Rrymh6zziPjz6Ui$Jz3RGMAE-wkA4LO53YtJ/detail?"
+      + "_period=1 hour"
+	  + "&_zone=UTC"
+      + "&_columns=unique,values"
+      + "&_from=" + formatTime(-336)
+      + "&_to=" + formatTime(1)
+      + "&api_key=" + queryKey;
+    $.ajax(query)
+      .done(function(result){
+        if (result.result){
+          var data = result.result;
+          var timeCol = cjtsd.getFormattedTimestamps(data, 'YYYY-MM-DD HH:mm', 'time');
+          var dataCol = cjtsd.prepend(data.n, 'Total number of distinct comments per 1 hour')
+		  var colLen = timeCol.length;
+		  if (colLen > 1){
+			  $("#latestTotalDistinctCommentsCountsPer1HourUTC").html(timeCol[colLen-1] + ": " + dataCol[colLen-1]);
+		  }
+           chartTotalDistinctCommentsCountsPer1HourUTC.load({
+            columns: [
+              timeCol,
+              dataCol
+            ]
+          });
+          $("#chartTotalDistinctCommentsCountsPer1HourUTC .tick line").css("opacity", 0);
+        }else{
+          if (console && console.log){
+            console.log("No valid result for query '" + query + "', result: " + result);
+          }
+        }
+      })
+      .always(function(){
+        var interval = 1000 * refreshIntervalSlider.getValue();
+        timeoutRefreshTotalDistinctCommentsCountsPer1HourUTC = setTimeout(updateTotalDistinctCommentsCountsPer1HourUTC, interval);
+      });
+  }
+
+  function updateTrumpVsClintonPer1HourUTC(){
+    var query;
+    query = "https://api.rtstatistics.com/statistics/STATISTICS_ID/detail?"
+      + "_period=1 hour"
+      + "&_zone=UTC"
+      + "&_columns=count"
+      + "&_from=" + formatTime(-336)
+      + "&_to=" + formatTime(1)
+      + "&api_key=" + queryKey;
+    var queryTrump = query.replace("STATISTICS_ID", "AA$wSRF3Rrymh6zziPjz6Ui$Qe64KNj0riG-HNkrl4Wt");
+    var queryClinton = query.replace("STATISTICS_ID", "AA$wSRF3Rrymh6zziPjz6Ui$yFJKZCswJJ7JI3pMCyTL");
+    var queryBoth = query.replace("STATISTICS_ID", "AA$wSRF3Rrymh6zziPjz6Ui$noex9b7smDIGk57uL5uZ");
+    var queryAll = query.replace("STATISTICS_ID", "AA$wSRF3Rrymh6zziPjz6Ui$SEWF2vekQI6bzP3peZq1");
+
+    $.when($.ajax(queryTrump), $.ajax(queryClinton), $.ajax(queryBoth), $.ajax(queryAll))
+      .done(function(resultTrump, resultClinton, resultBoth, resultAll){
+        var dataTrump = resultTrump[0].result;
+        var dataClinton = resultClinton[0].result;
+        var dataBoth = resultBoth[0].result;
+        var dataAll = resultAll[0].result;
+        if (dataTrump && dataClinton && dataBoth && dataAll){
+          var rawTimestamps = dataAll.t;
+          var timeCol = cjtsd.getFormattedTimestamps(dataAll, 'YYYY-MM-DD HH:mm', 'time');
+          var countsTrump = cjtsd.alignByTimestamps(rawTimestamps, dataTrump.t, dataTrump.c);
+          var countsClinton = cjtsd.alignByTimestamps(rawTimestamps, dataClinton.t, dataClinton.c);
+          var countsBoth = cjtsd.alignByTimestamps(rawTimestamps, dataBoth.t, dataBoth.c);
+          var countsAll = dataAll.c;
+          var countsTrumpOnly = cjtsd.substract(countsTrump, countsBoth);
+          var countsClintonOnly = cjtsd.substract(countsClinton, countsBoth);
+          var countsAny = cjtsd.add(cjtsd.add(countsTrumpOnly, countsClintonOnly), countsBoth);
+          var mentionedRatio = cjtsd.merge(function(all, mentioned){
+            if (mentioned === null){
+              return 0;
+            }else{
+              return mentioned / all;
+            }
+          }, countsAll, countsAny);
+
+          chartTrumpVsClintonPer1HourUTC.load({
+            columns:[
+              timeCol,
+              cjtsd.prepend(countsClintonOnly, 'clintonOnly'),
+              cjtsd.prepend(countsBoth, 'both'),
+              cjtsd.prepend(countsTrumpOnly, 'trumpOnly'),
+              cjtsd.prepend(mentionedRatio, 'ratio')
+            ],
+            types:{
+              trumpOnly: 'area',
+              both: 'area',
+              clintonOnly: 'area',
+              ratio: 'line'
+            },
+            axes: {
+              trumpOnly: 'y',
+              both: 'y',
+              clintonOnly: 'y',
+              ratio: 'y2'
+            }
+          });
+          $("#chartTrumpVsClintonPer1HourUTC .tick line").css("opacity", 0);
+        }else{
+          if (console && console.log){
+            console.log("No valid result for query '" + query + "', resultTrump: " + resultTrump
+              + ", resultClinton: " + resultClinton + ", resultBoth: " + resultBoth + ", resultAll: " + resultAll);
+          }
+        }
+
+      })
+      .always(function(){
+        var interval = 1000 * refreshIntervalSlider.getValue();
+        timeoutRefreshTrumpVsClintonPer1HourUTC = setTimeout(updateTrumpVsClintonPer1HourUTC, interval);
+      });
+  }
+
+
+  </script>
+</body>
+</html>
