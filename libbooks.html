@@ -72,19 +72,19 @@
     <div class="row">
       <div class="col-md-3">
         <h4>Today</h4>
-        <div id="chartUpdateAllTimeByLibraryAccountsTodayUTC"></div>
+        <div id="chartUpdateAllTimeByLibraryAccountsTodayUTC">若在墙里可能看不见图</div>
       </div>
       <div class="col-md-3">
         <h4>Yesterday</h4>
-        <div id="chartUpdateAllTimeByLibraryAccountsYesterdayUTC"></div>
+        <div id="chartUpdateAllTimeByLibraryAccountsYesterdayUTC">若在墙里可能看不见图</div>
       </div>
       <div class="col-md-3">
         <h4>This month</h4>
-        <div id="chartUpdateAllTimeByLibraryAccountsThisMonthUTC"></div>
+        <div id="chartUpdateAllTimeByLibraryAccountsThisMonthUTC">若在墙里可能看不见图</div>
       </div>
       <div class="col-md-3">
         <h4>Last month</h4>
-        <div id="chartUpdateAllTimeByLibraryAccountsLastMonthUTC"></div>
+        <div id="chartUpdateAllTimeByLibraryAccountsLastMonthUTC">若在墙里可能看不见图</div>
       </div>
     </div>
   </div>
@@ -96,6 +96,8 @@
 
   <script>
   var queryKey = "pvSq0wgTE9jK1FhSWy2hy71guTJRWTktHttGzY0uKA8bvf-kJXIE-i9Fi7imdilIQggZYL6pJqmTTQKrQRVStw";
+
+  var googleChartsLibLoaded = false;
 
   var refreshIntervalSlider;
 
@@ -179,31 +181,11 @@
       }
     });
 
-  	if (typeof google != 'undefined' && typeof google.charts != 'undefined'){
-  	    google.charts.load('current', {'packages':['corechart']});
-  	    google.charts.setOnLoadCallback(function(){
-  	      chartUpdateAllTimeByLibraryAccountsTodayUTC = new google.visualization.CandlestickChart(
-  	        document.getElementById('chartUpdateAllTimeByLibraryAccountsTodayUTC'));
-
-  	      chartUpdateAllTimeByLibraryAccountsYesterdayUTC = new google.visualization.CandlestickChart(
-  	        document.getElementById('chartUpdateAllTimeByLibraryAccountsYesterdayUTC'));
-
-  	      chartUpdateAllTimeByLibraryAccountsThisMonthUTC = new google.visualization.CandlestickChart(
-  	        document.getElementById('chartUpdateAllTimeByLibraryAccountsThisMonthUTC'));
-
-  	      chartUpdateAllTimeByLibraryAccountsLastMonthUTC = new google.visualization.CandlestickChart(
-  	        document.getElementById('chartUpdateAllTimeByLibraryAccountsLastMonthUTC'));
-
-  	      startRefresh();
-  	    });
-  	}else{
-  		var msg = "Google Charts library not accessible. <br>你是在墙里面吧？否则这里该显示一张图表。";
-  		$("#chartUpdateAllTimeByLibraryAccountsTodayUTC").html(msg);
-  		$("#chartUpdateAllTimeByLibraryAccountsYesterdayUTC").html(msg);
-  		$("#chartUpdateAllTimeByLibraryAccountsThisMonthUTC").html(msg);
-  		$("#chartUpdateAllTimeByLibraryAccountsLastMonthUTC").html(msg);
-  		startRefresh();
-  	}
+    startRefresh();
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(function(){
+      googleChartsLibLoaded = true;
+    });
   }
 
   function startRefresh(){
@@ -346,30 +328,47 @@
   }
 
   function updateUpdateAllTimeByLibraryAccountsTodayUTC(){
-    updateUpdateAllTimeByLibraryAccountsUTC(chartUpdateAllTimeByLibraryAccountsTodayUTC, "day", 0, 24, function(interval){
+    updateUpdateAllTimeByLibraryAccountsUTC('chartUpdateAllTimeByLibraryAccountsTodayUTC', "day", 0, 24, function(interval){
       timeoutRefreshUpdateAllTimeByLibraryAccountsTodayUTC = setTimeout(updateUpdateAllTimeByLibraryAccountsTodayUTC, interval);
     });
   }
 
   function updateUpdateAllTimeByLibraryAccountsYesterdayUTC(){
-    updateUpdateAllTimeByLibraryAccountsUTC(chartUpdateAllTimeByLibraryAccountsYesterdayUTC, "day", -24, 0, function(interval){
+    updateUpdateAllTimeByLibraryAccountsUTC('chartUpdateAllTimeByLibraryAccountsYesterdayUTC', "day", -24, 0, function(interval){
       timeoutRefreshUpdateAllTimeByLibraryAccountsYesterdayUTC = setTimeout(updateUpdateAllTimeByLibraryAccountsYesterdayUTC, interval);
     });
   }
 
   function updateUpdateAllTimeByLibraryAccountsThisMonthUTC(){
-    updateUpdateAllTimeByLibraryAccountsUTC(chartUpdateAllTimeByLibraryAccountsThisMonthUTC, "month", 0, 30*24, function(interval){
+    updateUpdateAllTimeByLibraryAccountsUTC('chartUpdateAllTimeByLibraryAccountsThisMonthUTC', "month", 0, 30*24, function(interval){
       timeoutRefreshUpdateAllTimeByLibraryAccountsThisMonthUTC = setTimeout(updateUpdateAllTimeByLibraryAccountsThisMonthUTC, interval);
     });
   }
 
   function updateUpdateAllTimeByLibraryAccountsLastMonthUTC(){
-    updateUpdateAllTimeByLibraryAccountsUTC(chartUpdateAllTimeByLibraryAccountsLastMonthUTC, "month", -30*24, 0, function(interval){
+    updateUpdateAllTimeByLibraryAccountsUTC('chartUpdateAllTimeByLibraryAccountsLastMonthUTC', "month", -30*24, 0, function(interval){
       timeoutRefreshUpdateAllTimeByLibraryAccountsLastMonthUTC = setTimeout(updateUpdateAllTimeByLibraryAccountsLastMonthUTC, interval);
     });
   }
 
-  function updateUpdateAllTimeByLibraryAccountsUTC(chartObj, periodUnit, fromHourOffset, toHourOffset, setTimerFunction){
+  function updateUpdateAllTimeByLibraryAccountsUTC(chartObjName, periodUnit, fromHourOffset, toHourOffset, setTimerFunction){
+    if (googleChartsLibLoaded){
+      if (!window[chartObjName]){
+        try{
+          window[chartObjName] = new google.visualization.CandlestickChart(
+            document.getElementById(chartObjName));
+        }catch(err){
+          window.console && console.log(err);
+        }
+      }
+    }
+    var chartObj = window[chartObjName];
+    if(!chartObj){
+      var interval = 1000 * refreshIntervalSlider.getValue();
+      setTimerFunction(interval);
+      return;
+    }
+
     var timeFormatPattern = periodUnit == "day" ? "YYYYMMDD" : "YYYYMM";
     var query;
     query = "https://api.rtstatistics.com/statistics/AA$S2hKMyHhKFbkP6MBEUuS$Sdb3u_Nw8UOBzd9GKNeA/detail?"
@@ -399,12 +398,10 @@
           cjtsd.setDataTableColumn(table, [].concat(data1.a || [null], data2.a || [null], data3.a || [null], data4.a || [null]), 3);
           cjtsd.setDataTableColumn(table, [].concat(data1.x || [null], data2.x || [null], data3.x || [null], data4.x || [null]), 4);
 
-          chartObj.draw(table, {legend:'none'});
+          chartObj.draw(table, {legend:'none', 'height':300});
         }else{
-          if (console && console.log){
-            console.log("No valid result for query '" + query + "', result1: " + result1
-              + ", result2: " + result2 + ", result3: " + result3 + ", result4: " + result4);
-          }
+          window.console && console.log("No valid result for query '" + query + "', result1: " + result1 +
+              ", result2: " + result2 + ", result3: " + result3 + ", result4: " + result4);
         }
       })
       .always(function(){
