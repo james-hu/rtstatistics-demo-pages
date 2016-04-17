@@ -76,6 +76,7 @@
   var queryKey = "r1ANSKf9wlQPOXyFVn2zwCChWTGc6fzOIH4sJYmM2pdCYljrH-rroXFZqN6GWkmW9Bb001Zdtf7vDQ8gXvaT-g";
 
   var refreshIntervalSlider;
+  var timeoutRefreshRefreshIntervalSlider;
 
   var chartTotalCommentsCountsPer1HourUTC;
   var timeoutRefreshTotalCommentsCountsPer1HourUTC;
@@ -215,15 +216,22 @@
     refreshIntervalSlider.on("slideStop", onNewRefreshInterval);
     refreshIntervalSlider.on("slideEnabled", onNewRefreshInterval);
 
-    refreshIntervalSlider.disable();
-    refreshIntervalSlider.enable();
+    onNewRefreshInterval();
+
+    $("body").mousemove(function(){
+      if (refreshIntervalSlider.getValue() > 1){
+        refreshIntervalSlider.setValue(1);
+        onNewRefreshInterval();
+      }
+    });
   }
 
   function onNewRefreshInterval(){
+    clearTimeout(timeoutRefreshRefreshIntervalSlider);
     resetRefreshing();
     var seconds = refreshIntervalSlider.getValue();
     if (seconds < 60){
-      setTimeout(function(){
+      timeoutRefreshRefreshIntervalSlider = setTimeout(function(){
         var seconds = refreshIntervalSlider.getValue();
         if (seconds < 60){
           refreshIntervalSlider.disable();
@@ -312,7 +320,7 @@
     query = "https://api.rtstatistics.com/statistics/AA$wSRF3Rrymh6zziPjz6Ui$Jz3RGMAE-wkA4LO53YtJ/detail?"
       + "_period=1 hour"
 	  + "&_zone=UTC"
-      + "&_columns=unique,values"
+      + "&_columns=unique"
       + "&_from=" + formatTime(-72)
       + "&_to=" + formatTime(1)
       + "&api_key=" + queryKey;

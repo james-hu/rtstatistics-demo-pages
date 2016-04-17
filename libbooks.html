@@ -104,6 +104,7 @@
   var googleChartsLibLoaded = false;
 
   var refreshIntervalSlider;
+  var timeoutRefreshRefreshIntervalSlider;
 
   var chartTotalEventCountsPer5MinUTC;
   var timeoutRefreshTotalEventCountsPer5MinUTC;
@@ -202,15 +203,22 @@
     refreshIntervalSlider.on("slideStop", onNewRefreshInterval);
     refreshIntervalSlider.on("slideEnabled", onNewRefreshInterval);
 
-    refreshIntervalSlider.disable();
-    refreshIntervalSlider.enable();
+    onNewRefreshInterval();
+
+    $("body").mousemove(function(){
+      if (refreshIntervalSlider.getValue() > 1){
+        refreshIntervalSlider.setValue(1);
+        onNewRefreshInterval();
+      }
+    });
   }
 
   function onNewRefreshInterval(){
+    clearTimeout(timeoutRefreshRefreshIntervalSlider);
     resetRefreshing();
     var seconds = refreshIntervalSlider.getValue();
     if (seconds < 60){
-      setTimeout(function(){
+      timeoutRefreshRefreshIntervalSlider = setTimeout(function(){
         var seconds = refreshIntervalSlider.getValue();
         if (seconds < 60){
           refreshIntervalSlider.disable();
