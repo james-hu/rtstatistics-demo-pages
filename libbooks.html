@@ -52,18 +52,18 @@
     Refresh interval (seconds): &nbsp;&nbsp;&nbsp;&nbsp;
     <input
       type="text"
-      id="refreshIntervalSlider"
+      id="inputRefreshIntervalSlider"
     >
   </p>
   <h3>Total event counts per 5 minutes (UTC)</h3>
-  <div id="chartTotalEventCountsPer5MinUTC"></div>
+  <div id="divChartTotalEventCountsPer5MinUTC"></div>
   This chart shows total number of usage events collected from the mobile app per 5 minutes. Statistics of last 48 hours are shown.
 
   The chart is drawn with c3.js and displays UTC time.
 
 
   <h3>Unique users per 1 hour (Melbourne time)</h3>
-  <div id="chartUniqueUsersPer1HourMelbourne"></div>
+  <div id="divChartUniqueUsersPer1HourMelbourne"></div>
   Every event sent from the mobile app contains an installation id which is a UUID generated during installation. By counting the number of unique installation ids, we can find out how many unique users are actively using this mobile app.
 
   The chart shows number of unique users per 1 hour. Statistics of last 48 hours are shown.
@@ -76,19 +76,19 @@
     <div class="row">
       <div class="col-md-3">
         <h4>Today</h4>
-        <div id="chartUpdateAllTimeByLibraryAccountsTodayUTC">若在墙里可能看不见图</div>
+        <div id="divChartUpdateAllTimeByLibraryAccountsTodayUTC">若在墙里可能看不见图</div>
       </div>
       <div class="col-md-3">
         <h4>Yesterday</h4>
-        <div id="chartUpdateAllTimeByLibraryAccountsYesterdayUTC">若在墙里可能看不见图</div>
+        <div id="divChartUpdateAllTimeByLibraryAccountsYesterdayUTC">若在墙里可能看不见图</div>
       </div>
       <div class="col-md-3">
         <h4>This month</h4>
-        <div id="chartUpdateAllTimeByLibraryAccountsThisMonthUTC">若在墙里可能看不见图</div>
+        <div id="divChartUpdateAllTimeByLibraryAccountsThisMonthUTC">若在墙里可能看不见图</div>
       </div>
       <div class="col-md-3">
         <h4>Last month</h4>
-        <div id="chartUpdateAllTimeByLibraryAccountsLastMonthUTC">若在墙里可能看不见图</div>
+        <div id="divChartUpdateAllTimeByLibraryAccountsLastMonthUTC">若在墙里可能看不见图</div>
       </div>
     </div>
   </div>
@@ -131,7 +131,7 @@
 
   function bindChartsAndStartRefresh(){
     chartTotalEventCountsPer5MinUTC = c3.generate({
-      bindto: '#chartTotalEventCountsPer5MinUTC',
+      bindto: '#divChartTotalEventCountsPer5MinUTC',
       data: {
         x: 'time',
         xFormat: '%Y-%m-%d %H:%M',
@@ -159,7 +159,7 @@
     });
 
     chartUniqueUsersPer1HourMelbourne = c3.generate({
-      bindto: '#chartUniqueUsersPer1HourMelbourne',
+      bindto: '#divChartUniqueUsersPer1HourMelbourne',
       data: {
         x: 'time',
         xFormat: '%Y-%m-%d %H:%M',
@@ -194,7 +194,7 @@
   }
 
   function startRefresh(){
-    refreshIntervalSlider = new Slider("#refreshIntervalSlider", {
+    refreshIntervalSlider = new Slider("#inputRefreshIntervalSlider", {
       min: 1,
       max: 60,
       value: 1,
@@ -292,7 +292,7 @@
               dataCol
             ]
           });
-          $("#chartTotalEventCountsPer5MinUTC .tick line").css("opacity", 0);
+          $("#divChartTotalEventCountsPer5MinUTC .tick line").css("opacity", 0);
         }else{
           if (console && console.log){
             console.log("No valid result for query '" + query + "', result: " + result);
@@ -326,7 +326,7 @@
               dataCol
             ]
           });
-          $("#chartUniqueUsersPer1HourMelbourne .tick line").css("opacity", 0);
+          $("#divChartUniqueUsersPer1HourMelbourne .tick line").css("opacity", 0);
         }else{
           if (console && console.log){
             console.log("No valid result for query '" + query + "', result: " + result);
@@ -368,7 +368,7 @@
       if (!window[chartObjName]){
         try{
           window[chartObjName] = new google.visualization.CandlestickChart(
-            document.getElementById(chartObjName));
+            document.getElementById('divC' + chartObjName.substring(1)));
         }catch(err){
           window.console && console.log(err);
         }
