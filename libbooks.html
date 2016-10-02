@@ -282,8 +282,8 @@
       + "&api_key=" + queryKey;
     $.ajax(query)
       .done(function(result){
-        if (result.result){
-          var data = result.result;
+        if (!result.error){
+          var data = result;
           var timeCol = cjtsd.getFormattedTimestamps(data, 'YYYY-MM-DD HH:mm', 'time');
           var dataCol = cjtsd.prepend(data.c, 'Total number of events per 5 minutes')
           chartTotalEventCountsPer5MinUTC.load({
@@ -316,8 +316,8 @@
       + "&api_key=" + queryKey;
     $.ajax(query)
       .done(function(result){
-        if (result.result){
-          var data = result.result;
+        if (!result.error){
+          var data = result;
           var timeCol = cjtsd.getFormattedTimestamps(data, 'YYYY-MM-DD HH:mm', 'time');
           var dataCol = cjtsd.prepend(data.n, 'Number of unique users per 1 hour')
           chartUniqueUsersPer1HourMelbourne.load({
@@ -393,10 +393,10 @@
       + "&numAccounts=";
     $.when($.ajax(query + "1"), $.ajax(query + "2"), $.ajax(query + "3"), $.ajax(query + "4"))
       .done(function(result1, result2, result3, result4){
-        var data1 = result1[0].result;
-        var data2 = result2[0].result;
-        var data3 = result3[0].result;
-        var data4 = result4[0].result;
+        var data1 = result1[0];
+        var data2 = result2[0];
+        var data3 = result3[0];
+        var data4 = result4[0];
         if (data1 && data2 && data3 && data4){
           var table = new google.visualization.DataTable();
           table.addColumn('string', "Number of accounts");

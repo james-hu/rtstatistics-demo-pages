@@ -287,8 +287,8 @@
       + "&api_key=" + queryKey;
     $.ajax(query)
       .done(function(result){
-        if (result.result){
-          var data = result.result;
+        if (!result.error){
+          var data = result;
           var timeCol = cjtsd.getFormattedTimestamps(data, 'YYYY-MM-DD HH:mm', 'time');
           var dataCol = cjtsd.prepend(data.c, 'Total number of comments per 1 hour')
 		  var colLen = timeCol.length;
@@ -326,8 +326,8 @@
       + "&api_key=" + queryKey;
     $.ajax(query)
       .done(function(result){
-        if (result.result){
-          var data = result.result;
+        if (!result.error){
+          var data = result;
           var timeCol = cjtsd.getFormattedTimestamps(data, 'YYYY-MM-DD HH:mm', 'time');
           var dataCol = cjtsd.prepend(data.n, 'Total number of distinct comments per 1 hour')
     		  var colLen = timeCol.length;
@@ -369,10 +369,10 @@
 
     $.when($.ajax(queryTrump), $.ajax(queryClinton), $.ajax(queryBoth), $.ajax(queryAll))
       .done(function(resultTrump, resultClinton, resultBoth, resultAll){
-        var dataTrump = resultTrump[0].result;
-        var dataClinton = resultClinton[0].result;
-        var dataBoth = resultBoth[0].result;
-        var dataAll = resultAll[0].result;
+        var dataTrump = resultTrump[0];
+        var dataClinton = resultClinton[0];
+        var dataBoth = resultBoth[0];
+        var dataAll = resultAll[0];
         if (dataTrump && dataClinton && dataBoth && dataAll){
           var rawTimestamps = dataAll.t;
           var timeCol = cjtsd.getFormattedTimestamps(dataAll, 'YYYY-MM-DD HH:mm', 'time');
